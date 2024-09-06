@@ -2,6 +2,7 @@
 using newzelandWalks.Data;
 using newzelandWalks.Models.Domain;
 using newzelandWalks.Repository.Base;
+using System;
 
 namespace newzelandWalks.Repository
 {
@@ -28,9 +29,41 @@ namespace newzelandWalks.Repository
             return walk;
         }
 
-        public async Task<List<Walk>> GetAllAsync()
+        public async Task<List<Walk>> GetAllAsync(
+            string?filterOn=null,string?filterQuery = null,
+            string?sortBy=null,bool isAscending=true,
+            int pageNumber=1,int pageSize=1000)
         {
-            return await _dbContext.Walks.Include("Difficulty").Include("Region").ToListAsync();
+            //return await _dbContext.Walks.Include("Difficulty").Include("Region").ToListAsync();
+            var obj = _dbContext.Walks.Include("Difficulty").Include("Region").AsQueryable();
+
+            //filtering
+            if(string.IsNullOrEmpty(filterOn)==false && string.IsNullOrEmpty(filterQuery) == false)
+            {
+                if (filterOn.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    obj = obj.Where(x => x.Name.Contains(filterQuery));
+                }
+            }
+
+            //sorting
+            if (string.IsNullOrEmpty(sortBy) == false)
+            {
+                if (sortBy.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    obj = isAscending ? obj.OrderBy(x => x.Name) : obj.OrderByDescending(x => x.Name);
+                }
+                else if (sortBy.Equals("Length", StringComparison.OrdinalIgnoreCase))
+                {
+                    obj=isAscending?obj.OrderBy(x=>x.LengthInKm):obj.OrderByDescending(x=>x.LengthInKm);
+                }
+            }
+
+            //pagination
+            var skipResults = (pageNumber - 1) * pageSize;
+
+            return await obj.Skip(skipResults).Take(pageSize).ToListAsync();
+            
         }
 
         public async Task<Walk?> GetAsync(Guid id)

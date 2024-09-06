@@ -1,9 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using newzelandWalks.Models.Domain;
 
 namespace newzelandWalks.Data
 {
-    public class AppDbContext:DbContext
+    public class AppDbContext:IdentityDbContext
     {
         public DbSet<Difficulty> Difficulties { get; set; }
         public DbSet<Region> Regions { get; set; }
@@ -89,6 +91,29 @@ namespace newzelandWalks.Data
                 },
             };
 
+            //seeding data for identity role
+            var userId = "8f2da2d1-415e-4d5f-b997-846a32c990ae";
+            var adminId = "2d15548c-31b1-4a36-a231-16de6a482862";
+            var obj = new List<IdentityRole>
+            {
+                new IdentityRole
+                {
+                    Id=userId,
+                    ConcurrencyStamp=userId,
+                    Name="user",
+                    NormalizedName="user".ToUpper()
+                },
+                new IdentityRole
+                {
+                    Id=adminId,
+                    ConcurrencyStamp=adminId,
+                    Name="admin",
+                    NormalizedName="admin".ToUpper()
+                }
+                
+
+            };
+            modelBuilder.Entity<IdentityRole>().HasData(obj);
             modelBuilder.Entity<Region>().HasData(regions);
         }
     }

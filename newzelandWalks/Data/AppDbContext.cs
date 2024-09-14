@@ -5,12 +5,13 @@ using newzelandWalks.Models.Domain;
 
 namespace newzelandWalks.Data
 {
-    public class AppDbContext:IdentityDbContext
+    public class AppDbContext:IdentityDbContext<ApplicationUser>
     {
         public DbSet<Difficulty> Difficulties { get; set; }
         public DbSet<Region> Regions { get; set; }
         public DbSet<Walk> Walks { get; set; }
         public DbSet<Image> Images { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         public AppDbContext(DbContextOptions db) : base(db)
         {
 
@@ -116,6 +117,7 @@ namespace newzelandWalks.Data
             };
             modelBuilder.Entity<IdentityRole>().HasData(obj);
             modelBuilder.Entity<Region>().HasData(regions);
+            modelBuilder.Entity<RefreshToken>().HasNoKey();
         }
     }
 }

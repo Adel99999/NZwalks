@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using newzelandWalks.Models.Domain;
 using newzelandWalks.Models.DTO;
 using newzelandWalks.Repository.Base;
 
@@ -10,9 +11,9 @@ namespace newzelandWalks.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManger;
+        private readonly UserManager<ApplicationUser> _userManger;
         private readonly ITokenRepository _tokenRepository;
-        public AuthController(UserManager<IdentityUser> userManager,ITokenRepository obj)
+        public AuthController(UserManager<ApplicationUser> userManager,ITokenRepository obj)
         {
             _userManger = userManager;
             _tokenRepository = obj;
@@ -21,7 +22,7 @@ namespace newzelandWalks.Controllers
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto obj)
         {
-            var identityUser = new IdentityUser
+            var identityUser = new ApplicationUser
             {
                 UserName = obj.UserName,
                 Email = obj.UserName
@@ -43,19 +44,32 @@ namespace newzelandWalks.Controllers
             var user = await _userManger.FindByEmailAsync(obj.Username);
             if (user != null)
             {
-               var checkPassResult =await _userManger.CheckPasswordAsync(user, obj.Password);
+                var checkPassResult = await _userManger.CheckPasswordAsync(user, obj.Password);
                 if (checkPassResult)
                 {
-                    //get roles for this user
-                    var roles =await _userManger.GetRolesAsync(user);
-                    //create token
-                    if (roles != null) {
-                        var JwtToken = _tokenRepository.CreateJwtToken(user, roles.ToList());
-                        return Ok(JwtToken);
+                    // Get roles for this user
+                    var roles = await _userManger.GetRolesAsync(user);
+                    if (roles != null)
+                    {
+                        // Create JWT token
+                        var jwtToken = _tokenRepository.CreateJwtToken(user, roles.ToList());
+
+                        // Generate and set refresh token
+                        var refreshToken = _tokenRepository.GenerateRefreshToken();
+                        _tokenRepository.SetRefreshToken(refreshToken);
+
+                        // Update user with the new refresh token details
+                        user.RefreshToken = refreshToken.Token;
+                        user.TokenCreated = refreshToken.Created;
+                        user.TokenExpires = refreshToken.Expires;
+
+                        await _userManger.UpdateAsync(user);
+
+                        return Ok(new { Token = jwtToken, RefreshToken = refreshToken.Token });
                     }
                 }
             }
-            return BadRequest("something went wrong");
+            return BadRequest("Invalid login attempt.");
         }
     }
 }
